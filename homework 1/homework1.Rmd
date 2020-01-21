@@ -2,7 +2,7 @@
 title: "Homework 1: Loss Function"
 author: "Di Gravio, Chiara"
 date: "`r date()`"
-output: htlm_document
+output: md_document
 ---
 
 ```{r setup, include=FALSE}
