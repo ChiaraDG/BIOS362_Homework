@@ -2,8 +2,4 @@
 
 Repository for submitting BIOS362 assignments:
 
-* Homework 1: Loss Functions
-
-* Homework 2:
-
-* Homewrok 3:
+* [Homework 1](https://github.com/ChiaraDG/BIOS362_Homework/tree/master/homework%201): Loss Functions
