@@ -1,0 +1,157 @@
+---
+title: "Homework 2: Ridge Regression"
+author: "Di Gravio, Chiara"
+date: "`r date()`"
+output: md_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Use the prostate cancer data from the ElemStatLearn package for R.
+
+```{r, message=FALSE}
+library(ElemStatLearn)
+library(tidyverse)
+library(glmnet)
+library(reshape)
+
+# import and show the data
+data(prostate)
+head(prostate)
+```
+
+## Use the cor function to reproduce the correlations listed in HTF Table 3.1, page 50.
+
+Table 3.1 reported the lower left side of the correlation matrix below:
+
+```{r}
+# get the training data and compute correlations
+prostate_train <- prostate %>% filter(train == TRUE) %>% select(-train)
+# correlation matrix
+round(cor(prostate_train), 3)
+```
+
+## Treat lpsa as the oucome, and use all other variables in the data set as predictors. With the training subset, train a least-squares regression model with all predictors using the lm function (with the training subset).
+
+The results from the linear regression model with lpsa as outcome are presented below:
+
+```{r}
+ls_train <- lm(lpsa ~ ., data = prostate_train)
+summary(ls_train)
+```
+
+## Use the testing subset to compute the test error using the fitted least-squares regression model.
+
+```{r}
+# functions taken from the lecture notes (with changed outcome in error function):
+## L2 loss for LM model only
+L2_loss <- function(y, yhat) {
+  (y-yhat)^2
+}
+# compute both test and training error using L2 loss
+error <- function(dat, fit, loss=L2_loss){
+  mean(loss(dat$lpsa, predict(fit, newdata=dat)))
+}
+  
+# test dataset
+prostate_test <- prostate %>% filter(train == FALSE) %>% select(-train)
+## testing error
+error(prostate_test, ls_train)
+```
+
+Using the $L_2$ loss function, the test error is 0.521.
+
+## Train a ridge regression model using the glmnet function, and tune the value of lambda.
+
+First, we fit ridge regression on the training data using ridge regression in glmnet with the option nlambda = 100. This allows us to fit ridge regression for 100 values of the tuning parameter lambda.
+
+```{r, message = FALSE}
+# set the form for ridge regression
+form  <- lpsa ~ 0 + lcavol + lweight + age + lbph + lcp + pgg45 + svi + gleason
+x_inp <- model.matrix(form, data = prostate_train)
+y_out <- prostate_train$lpsa
+# try different lambdas
+ridge_train <- glmnet(x=x_inp, y=y_out, alpha = 0, nlambda = 100)
+
+# save the sequence of lambdas use to set ridge
+lambdas <- ridge_train$lambda
+```
+
+To tune the value of lambda, we pick the lambda (among those used in the glmnet) that minimises the test error:
+
+```{r}
+## functions to compute testing/training error with glmnet (using the l2 loss)
+error <- function(dat, fit, lam, form, loss = L2_loss) {
+  x_inp <- model.matrix(form, data = dat)
+  y_out <- dat$lpsa
+  y_hat <- predict(fit, newx = x_inp, s = lam) 
+  mean(loss(y_out, y_hat))
+}
+
+# compute test error for eache value of lambda used within ridge
+test_error <- sapply(lambdas, function(lam){error(prostate_test, ridge_train, lam, form)})
+# smallest test error
+min(test_error)
+```
+
+The smallest test error is about 0.487 which is reached we lambda is:
+
+```{r}
+# pick the lambda that gives us the smallerst test error and print results
+lambda_sel <- lambdas[which.min(test_error)]
+lambda_sel
+```
+
+The coefficients' estimate from ordinary least square and ridge regression with lambda = 0.2228 are reported below. The table shows how the coefficients estimated from ridge regression tend to be closer to zero due to shrinkage.
+
+```{r}
+# print the results of the model with the smallest test error and compared it with the betas from lm
+best_fit <- glmnet(x = x_inp, y = y_out, alpha = 0, lambda = lambda_sel)
+df <- data.frame(RIDGE = as.vector(best_fit$beta), LS = coef(ls_train)[-1])
+round(df, 3)
+```
+
+## Create a path diagram of the ridge regression analysis
+
+To create a path diagram we only considered the coefficients' estimate associated with lambdas less than 20. While we could plot the path diagram for each possible lambda used in glment, restricting the set of tuning parameter helped us visualising each coefficient path:
+
+```{r}
+# get the path for each lambda
+ridge_path <- list()
+for(i in 1:nrow(ridge_train$beta)){
+  ridge_path[[i]] <- data.frame(lambda = ridge_train$lambda, betas = ridge_train$beta[i, ], 
+                                coef = rownames(ridge_train$beta)[i])
+}
+paths <- do.call(rbind, ridge_path)
+paths <- paths[order(paths$lambda),]
+
+# too many lambda to plot graph is hard to see. Reduce range of lambda and plot
+paths %>% filter(lambda < 20) %>% ggplot(., aes(x = lambda, y = betas, col = coef)) + 
+  geom_point(size = 0.4) + geom_line() + theme_minimal() + 
+  labs(x = expression(lambda), y = "Estimated coefficient", title = "Ridge Regression: Path Diagram")
+```
+
+
+## Create a figure that shows the training and test error associated with ridge regression as a function of lambda
+
+We compute the test and training error for all possible values of lambda used in glment, However, to create the plot we only considered values of lambda < 0.5 to ease visualisation:
+
+```{r}
+# compute traing error for each value of lambda used within ridge
+train_error <- sapply(lambdas, function(lam) {error(prostate_train, ridge_train, lam, form)})
+# test error was already computed
+
+# save in dataset and plot
+df.errors <- data.frame(lambda = lambdas, train = train_error, test = test_error)
+df.errorsLong <- melt(df.errors, id = "lambda")
+names(df.errorsLong) <- c("lambda", "error", "value")
+
+df.errorsLong %>% filter(lambda < 0.5) %>% 
+  ggplot(., aes(x = lambda, y = value, col = error)) + geom_point(size = 0.4) + geom_line() + theme_minimal() + 
+  labs(x = expression(lambda), y = "Training/Test Error", title = "Ridge Regression: Training and Test Error")
+```
+
+
+
