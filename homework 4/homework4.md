@@ -7,10 +7,10 @@ If we assume the 0-1 loss function, the expected prediction error is
 given by:
 
 $$
-\\begin{align}
+\\begin{aligned}
 EPE = E\[\\text{Err}\_{\\tau}\] &= E\[L(Y, \\hat{f}(X)) | \\tau\] =  P(Y = \\hat{f}(X))L(Y, \\hat{f}(X) | Y = \\hat{f}(X)) + P(Y \\neq \\hat{f}(X))L(Y, \\hat{f}(X) | Y \\neq \\hat{f}(X)) \\\\
 &= \\frac{1}{2}\\times 0 + \\frac{1}{2} \\times 1 = \\frac{1}{2}
-\\end{align}
+\\end{aligned}
 $$
 
 We can show that the expected prediction error is 0.5 using a simulation
