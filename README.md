@@ -9,3 +9,5 @@ Repository for submitting BIOS362 assignments:
 * [Homework 3](https://github.com/ChiaraDG/BIOS362_Homework/tree/master/homework%203): Reduced Rank LDA
 
 * [Homework 4](https://github.com/ChiaraDG/BIOS362_Homework/tree/master/homework%204): Expected Prediction Error
+
+* [Homework 5](https://github.com/ChiaraDG/BIOS362_Homework/tree/master/homework%205): Bootstrap Sampling Correlation and Bagging
